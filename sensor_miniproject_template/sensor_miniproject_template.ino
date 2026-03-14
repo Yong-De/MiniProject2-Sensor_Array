@@ -18,8 +18,8 @@
  *                      machine, color sensor, setup(), and loop().
  */
 
-#include packets.h
-#include serial_driver.h
+#include "packets.h"
+#include "serial_driver.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
@@ -102,14 +102,7 @@ const int output_PIN = 2;
  * ensures all implementations report the same physical quantity.
  */
 
-<<<<<<< Updated upstream
 
-ISR(INT4_vect) {
-  edgeCount++;
-}
-
-=======
->>>>>>> Stashed changes
  /*
  * Use a timer to count rising edges on the sensor output over a fixed
  * window (e.g. 100 ms) for each color channel (red, green, blue).
@@ -143,17 +136,6 @@ ISR(INT4_vect) {
 
 static uint32_t measureChannel(uint8_t s2_val, uint8_t s3_val) {
   if(s2_val) {
-<<<<<<< Updated upstream
-    PORTH |= (1 << PH5);
-  } else {
-    PORTH &= ~(1 << PH5);
-  }
-
-  if(s3_val) {
-    PORTH |= (1 << PH6);
-  } else {
-    PORTH &= ~(1 << PH6);
-=======
     PORTA |= (1 << PA2);
   } else {
     PORTA &= ~(1 << PA2);
@@ -163,7 +145,6 @@ static uint32_t measureChannel(uint8_t s2_val, uint8_t s3_val) {
     PORTA |= (1 << PA3);
   } else {
     PORTA &= ~(1 << PA3);
->>>>>>> Stashed changes
   }
 
   edgeCount = 0;
@@ -223,7 +204,7 @@ static void handleCommand(const TPacket *cmd) {
                 memset(&pkt, 0, sizeof(pkt));
                 pkt.packetType = PACKET_TYPE_RESPONSE;
                 pkt.command    = RESP_OK;
-                strncpy(pkt.data, "This is a debug message", sizeof(pkt.data) - 1);
+                strncpy(pkt.data, "E-Stop is activated.", sizeof(pkt.data) - 1);
                 pkt.data[sizeof(pkt.data) - 1] = '\0';
                 sendFrame(&pkt);
             }
@@ -246,7 +227,7 @@ static void handleCommand(const TPacket *cmd) {
                 colorPkt.params[1] = (uint16_t)green;
                 colorPkt.params[2] = (uint16_t)blue;
 
-                snprintf(colorPkt.data, sizeof(colorPkt.data), "Color: R=%lu Hz,G=%lu Hz,B=%lu Hz", red, green ,blue);
+                snprintf(colorPkt.data, sizeof(colorPkt.data), "R=%lu Hz, G=%lu Hz, B=%lu Hz", red, green ,blue);
 
                 sendFrame(&colorPkt);
                 break;
@@ -270,21 +251,6 @@ void setup() {
     // TODO (Activity 1): configure the button pin and its external interrupt,
     // then call sei() to enable global interrupts.
 
-<<<<<<< Updated upstream
-    DDRH |= (1 << PH3) | (1 << PH4) | (1 << PH5) | (1 << PH6);
-    PORTH |= (1 << PH3);
-    PORTH &= ~(1 << PH4);
-
-    DDRE &= ~(1 << PE4);
-    EIMSK |= (1 << INT4);
-    EICRB |= (1 << ISC41);
-    EICRB &= ~(1 << ISC40);
-
-    DDRE &= ~(1 << PE5);
-    EIMSK |= (1 << INT5);
-    EICRB |= (1 << ISC51);
-    EICRB &= ~(1 << ISC50);
-=======
     DDRA  |= (1 << PA0) | (1 << PA1) | (1 << PA2) | (1 << PA3);
     PORTA |=  (1 << PA0);   // S0 HIGH
     PORTA &= ~(1 << PA1);   // S1 LOW
@@ -292,7 +258,6 @@ void setup() {
     DDRE &= ~(1 << PE5) & ~(1 << PE4);
     EIMSK |= 0b00110000;
     EICRB |= 0b00000111;
->>>>>>> Stashed changes
 
     sei();
 }
