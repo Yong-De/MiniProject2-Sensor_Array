@@ -2,7 +2,7 @@ import shutil
 import sys
 import numpy as np
 import time
-import pygame
+# import pygame
 from lidar.alex_lidar import lidarConnect, lidarDisconnect, lidarStatus, performSingleScan
 
 # ==============================================================================
@@ -240,56 +240,56 @@ def plot_live_scan():
 
 WINDOW_SIZE = 800
 
-def plot_live_scan_pygame():
-    # pygame initializations
-    pygame.init()
-    screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
-    pygame.display.set_caption("LIDAR Live View")
-    clock = pygame.time.Clock()
-    font = pygame.font.SysFont("monospace", 13)
-
-    # connecting to the rpi
-    lidar = lidarConnect(port="/dev/ttyUSB0", baudrate=115200, wait=2)
-    status = lidarStatus(lidar)
-    mode = status['typical_scan_mode']
-
-    running = True
-    while running:
-        # event.get drains previous event queue
-        for event in pygame.event.get():
-            # if program exits, QUIT event type is triggered.
-            if event.type == pygame.QUIT:
-                running = False
-
-        # Get scan
-        scan_data = performSingleScan(lidar, mode)
-        xs, ys = convert_to_cartesian(scan_data[0], scan_data[1])
-
-        # GUI settings
-        screen.fill((0, 0, 0))
-        center = WINDOW_SIZE // 2
-        scale = center / MAX_RANGE_MM
-
-        # Axes
-        pygame.draw.line(screen, (60, 60, 60), (0, center), (WINDOW_SIZE, center))
-        pygame.draw.line(screen, (60, 60, 60), (center, 0), (center, WINDOW_SIZE))
-
-        # Points
-        for x, y in zip(xs, ys):
-            px = int(center + x * scale)
-            py = int(center - y * scale)
-            if 0 <= px < WINDOW_SIZE and 0 <= py < WINDOW_SIZE:
-                pygame.draw.circle(screen, (0, 255, 0), (px, py), 2)
-
-        # FPS counter
-        fps = font.render(f"FPS: {clock.get_fps():.1f}", True, (200, 200, 0))
-        screen.blit(fps, (10, 10))
-
-        pygame.display.flip()
-        clock.tick(60)
-
-    lidarDisconnect(lidar)
-    pygame.quit()
+# def plot_live_scan_pygame():
+#     # pygame initializations
+#     pygame.init()
+#     screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
+#     pygame.display.set_caption("LIDAR Live View")
+#     clock = pygame.time.Clock()
+#     font = pygame.font.SysFont("monospace", 13)
+# 
+#     # connecting to the rpi
+#     lidar = lidarConnect(port="/dev/ttyUSB0", baudrate=115200, wait=2)
+#     status = lidarStatus(lidar)
+#     mode = status['typical_scan_mode']
+# 
+#     running = True
+#     while running:
+#         # event.get drains previous event queue
+#         for event in pygame.event.get():
+#             # if program exits, QUIT event type is triggered.
+#             if event.type == pygame.QUIT:
+#                 running = False
+# 
+#         # Get scan
+#         scan_data = performSingleScan(lidar, mode)
+#         xs, ys = convert_to_cartesian(scan_data[0], scan_data[1])
+# 
+#         # GUI settings
+#         screen.fill((0, 0, 0))
+#         center = WINDOW_SIZE // 2
+#         scale = center / MAX_RANGE_MM
+# 
+#         # Axes
+#         pygame.draw.line(screen, (60, 60, 60), (0, center), (WINDOW_SIZE, center))
+#         pygame.draw.line(screen, (60, 60, 60), (center, 0), (center, WINDOW_SIZE))
+# 
+#         # Points
+#         for x, y in zip(xs, ys):
+#             px = int(center + x * scale)
+#             py = int(center - y * scale)
+#             if 0 <= px < WINDOW_SIZE and 0 <= py < WINDOW_SIZE:
+#                 pygame.draw.circle(screen, (0, 255, 0), (px, py), 2)
+# 
+#         # FPS counter
+#         fps = font.render(f"FPS: {clock.get_fps():.1f}", True, (200, 200, 0))
+#         screen.blit(fps, (10, 10))
+# 
+#         pygame.display.flip()
+#         clock.tick(60)
+# 
+#     lidarDisconnect(lidar)
+#     pygame.quit()
 
 if __name__ == "__main__":
     # Uncomment one of the following lines to run either the single scan plot or the live scan plot.

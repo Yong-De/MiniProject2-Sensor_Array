@@ -22,8 +22,6 @@ import time
 import sys
 import select
 
-import pi_sensor as cam
-
 # ----------------------------------------------------------------
 # SERIAL PORT SETUP
 # ----------------------------------------------------------------
@@ -40,6 +38,7 @@ def openSerial():
     _ser = serial.Serial(PORT, BAUDRATE, timeout=5)
     print(f"Opened {PORT} at {BAUDRATE} baud. Waiting for Arduino...")
     time.sleep(2)
+    _ser.reset_input_buffer()
     print("Ready.\n")
 
 
@@ -126,16 +125,6 @@ def unpackTPacket(raw):
         'data':       fields[2],
         'params':     list(fields[3:]),
     }
-
-
-
-
-
-
-
-
-
-
 
 
 def receiveFrame():
@@ -272,8 +261,6 @@ def handleColorCommand():
     Otherwise, send your color command to the Arduino.
     """
     # TODO
-    pass
-
     if isEstopActive():
         print("Estop is active.")
         return
@@ -307,6 +294,8 @@ def handleCameraCommand():
     """
     global _frames_remaining
     # TODO
+    if (not isEstopActive):
+        _frames_remaining = 5
     pass
 
 
@@ -316,8 +305,6 @@ def handleCameraCommand():
 
 # TODO (Activity 4): import from lidar.alex_lidar and lidar_example_cli_plot
 #   (lidar_example_cli_plot.py is in the same folder; alex_lidar.py is in lidar/).
-import lidar.alex_lidar as alex_lidar
-from lidar_example_cli_plot import plot_single_scan
 
 def handleLidarCommand():
     """
@@ -398,4 +385,14 @@ def runCommandInterface():
 # ----------------------------------------------------------------
 # MAIN
 # ----------------------------------------------------------------
+
+if __name__ == '__main__':
+    openSerial()
+    try:
+        runCommandInterface()
+    except KeyboardInterrupt:
+        print("\nExiting.")
+    finally:
+        # TODO (Activities 3 & 4): close the camera and disconnect the LIDAR here if you opened them.
+        closeSerial()
 

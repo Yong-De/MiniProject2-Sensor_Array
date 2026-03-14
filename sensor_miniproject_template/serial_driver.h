@@ -67,7 +67,7 @@ void usartInit(uint16_t ubrr) {
 // =============================================================
 
 /*
- * TODO (Activity 1): Implement txEnqueue(). (DONE BY KEVIN)
+ * TODO (Activity 1): Implement txEnqueue().
  *
  * Attempt to copy all `len` bytes from `data` into the circular TX
  * buffer.  If the buffer does not have enough free space, do NOT
@@ -79,16 +79,16 @@ bool txEnqueue(const uint8_t *data, uint8_t len) {
     uint8_t tail = tx_tail;
     
     // Calculate used space: (head - tail) & (BUF_SIZE - 1)
-    uint8_t used = (head - tail) & 127;
-    uint8_t free_space = 127 - used;
+    uint8_t used = (head - tail) & TX_BUFFER_MASK;
+    uint8_t free_space = TX_BUFFER_MASK - used;
 
     if (len > free_space) {
     	return false;
     }
 
     for (uint8_t i = 0; i < len; i++) {
-	tx_buf[head] = data[i];
-	head = (head + 1) & 127;
+	    tx_buf[head] = data[i];
+	    head = (head + 1) & TX_BUFFER_MASK;
     }
 
     tx_head = head;
@@ -96,7 +96,7 @@ bool txEnqueue(const uint8_t *data, uint8_t len) {
     return true;
 }
 
-// TODO (Activity 1): Implement the TX Data Register Empty ISR. (DONE BY KEVIN)
+// TODO (Activity 1): Implement the TX Data Register Empty ISR.
 // Vector: USART0_UDRE_vect
 // Drain one byte from tx_buf into UDR0; when the buffer is empty,
 // clear the UDRIE0 bit to stop the ISR from firing.
@@ -104,16 +104,16 @@ ISR(USART0_UDRE_vect) {
     uint8_t head = tx_head;
     uint8_t tail = tx_tail;
     if (head != tail) {
-	UDR0 = tx_buf[tail];
-	tx_tail = (tail + 1) & 127;
+	    UDR0 = tx_buf[tail];
+	    tx_tail = (tail + 1) & TX_BUFFER_MASK;
     }
     else {
-	UCSR0B &= ~(1 << UDRIE0);
+	    UCSR0B &= ~(1 << UDRIE0);
     }
 }
 
 /*
- * TODO (Activity 1): Implement rxDequeue(). (DONE BY KEVIN)
+ * TODO (Activity 1): Implement rxDequeue(). 
  *
  * Attempt to copy `len` bytes out of the circular RX buffer into
  * `data`.  If fewer than `len` bytes are available, do NOT copy
@@ -123,36 +123,36 @@ bool rxDequeue(uint8_t *data, uint8_t len) {
     uint8_t head = rx_head;
     uint8_t tail = rx_tail;
 
-    uint8_t available = head - tail;
+    uint8_t available = (head - tail) & RX_BUFFER_MASK;
 
     if (available < len) {
-	return false;
+	    return false;
     }
 
     for (uint8_t i = 0; i < len; i++) {
-	data[i] = rx_buf[tail];
-	tail++;
+	    data[i] = rx_buf[tail];
+	    tail = (tail + 1) & RX_BUFFER_MASK;
     }
 
     rx_tail = tail;
     return true;
 }
 
-#endif
-
-// TODO (Activity 1): Implement the RX Complete ISR. (DONE BY KEVIN)
+// TODO (Activity 1): Implement the RX Complete ISR.
 // Vector: USART0_RX_vect
 // Read UDR0 immediately.  If the buffer is not full, store the byte
 // and advance the write index; otherwise discard it.
 ISR(USART0_RX_vect) {
-    uint8_t received byte = UDR0;
-    uint8_t next_head = rx_head + 1;
+    uint8_t received_byte = UDR0;
+    uint8_t next_head = (rx_head + 1) & RX_BUFFER_MASK;
 
     if (next_head != rx_tail) {
-	rx_buf[rx_head] = received_byte;
-	rx_head = next_head;
+	    rx_buf[rx_head] = received_byte;
+	    rx_head = next_head;
     }
 }
+
+#endif
 
 // =============================================================
 // Framing: magic number + XOR checksum (pre-implemented)
@@ -160,7 +160,8 @@ ISR(USART0_RX_vect) {
 
 static uint8_t computeChecksum(const uint8_t *data, uint8_t len) {
     uint8_t cs = 0;
-    for (uint8_t i = 0; i < len; i++) cs ^= data[i];
+    for (uint8_t i = 0; i < len; i++) 
+        cs ^= data[i];
     return cs;
 }
 

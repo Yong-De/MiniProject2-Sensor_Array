@@ -20,6 +20,8 @@
 
 #include "packets.h"
 #include "serial_driver.h"
+#include <avr/io.h>
+#include <avr/interrupt.h>
 
 // =============================================================
 // Packet helpers (pre-implemented for you)
@@ -67,6 +69,14 @@ volatile bool   stateChanged = false;
  * registers for your chosen pin.
  */
 
+#define THRESHOLD 10
+volatile bool buttonChanged = false;
+volatile long currTime, lastTime;
+
+// Corresponds to digital pin 3 on the mega
+ISR(INT5_vect) {
+  buttonChanged = true;
+}
 
 // =============================================================
 // Color sensor (TCS3200)
@@ -79,10 +89,10 @@ volatile bool   stateChanged = false;
  * (S0, S1, S2, S3) and the frequency output pin.
  */
 
-const int S0 = 6;
-const int S1 = 7;
-const int S2 = 8;
-const int S3 = 9;
+const int S0 = 3;
+const int S1 = 4;
+const int S2 = 5;
+const int S3 = 6;
 const int output_PIN = 2;
 
 
@@ -93,9 +103,6 @@ const int output_PIN = 2;
  */
 
 
-ISR(INT4_vect) {
-  edgeCount++;
-}
 
  /*
  * Use a timer to count rising edges on the sensor output over a fixed
@@ -110,9 +117,6 @@ unsigned int redFreq = 0;
 unsigned int blueFreq = 0;
 unsigned int greenFreq = 0;
 
-void countEdge() {
-  edgeCount++;
-}
 
  /* Implement a function that measures all three channels and stores the
  * frequency in Hz in three variables.
@@ -124,17 +128,17 @@ void countEdge() {
  * Example skeleton:
  */
 
-void measureChannel(uint8_t s2_val, uint8_t s3_val) {
+static uint32_t measureChannel(uint8_t s2_val, uint8_t s3_val) {
   if(s2_val) {
-    PORTH |= (1 << PH5);
+    PORTD |= (1 << PD5);
   } else {
-    PORTH &= ~(1 << PH5);
+    PORTD &= ~(1 << PD5);
   }
 
   if(s3_val) {
-    PORTH |= (1 << PH6);
+    PORTD |= (1 << PD6);
   } else {
-    PORTH &= ~(1 << PH6);
+    PORTD &= ~(1 << PD6);
   }
 
   edgeCount = 0;
@@ -143,7 +147,7 @@ void measureChannel(uint8_t s2_val, uint8_t s3_val) {
 
   cli();
   uint32_t count = edgeCount;
-  set();
+  sei();
 
   return count;
 }
@@ -204,7 +208,7 @@ static void handleCommand(const TPacket *cmd) {
             uint32_t red, green, blue;
             readColorChannels(&red, &green, &blue);
                 TPacket colorPkt;
-                memset(&colorPkt, 0, sizeof(pkt));
+                memset(&colorPkt, 0, sizeof(colorPkt));
                 colorPkt.packetType = PACKET_TYPE_RESPONSE;
                 colorPkt.command    = RESP_COLOR;
 
@@ -235,24 +239,37 @@ void setup() {
     // TODO (Activity 1): configure the button pin and its external interrupt,
     // then call sei() to enable global interrupts.
 
-    DDRH |= (1 << PH3) | (1 << PH4) | (1 << PH5) | (1 << PH6);
-    PORTH |= (1 << PH3);
-    PORTH &= ~(1 << PH4);
-
-    DDRE &= ~(1 << PE4);
-    EIMSK |= (1 << INT4);
-    EICRB |= (1 << ISC41);
-    EICRB &= ~(1 << ISC40);
+    DDRD |= (1 << PD3) | (1 << PD4) | (1 << PD5) | (1 << PD6);
+    PORTD |= (1 << PD3);
+    PORTD &= ~(1 << PD4);
 
     DDRE &= ~(1 << PE5);
-    EIMSK |= (1 << INT5);
-    EICRB |= (1 << ISC51);
-    EICRB &= ~(1 << ISC50);
+    EIMSK |= 0b00100000;
+    EICRB |= 0b00000100;
 
     sei();
 }
 
 void loop() {
+    if (buttonChanged) {
+      buttonChanged = false;
+      currTime = millis();
+
+        if (currTime - lastTime > THRESHOLD) {
+            bool pinHigh = PINE & (1 << PE5);
+
+            if (buttonState == STATE_RUNNING && pinHigh) {
+                buttonState = STATE_STOPPED;
+                stateChanged = true;
+            }
+            else if (buttonState == STATE_STOPPED && !pinHigh) {
+                buttonState = STATE_RUNNING;
+                stateChanged = true;
+            }
+
+            lastTime = currTime;
+        }
+    }
     // --- 1. Report any E-Stop state change to the Pi ---
     if (stateChanged) {
         cli();
