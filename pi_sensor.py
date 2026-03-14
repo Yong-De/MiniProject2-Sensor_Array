@@ -22,7 +22,11 @@ import time
 import sys
 import select
 
+<<<<<<< Updated upstream
 import alex_camera as cam
+=======
+import pi_sensor as cam
+>>>>>>> Stashed changes
 
 # ----------------------------------------------------------------
 # SERIAL PORT SETUP
@@ -40,7 +44,6 @@ def openSerial():
     _ser = serial.Serial(PORT, BAUDRATE, timeout=5)
     print(f"Opened {PORT} at {BAUDRATE} baud. Waiting for Arduino...")
     time.sleep(2)
-    _ser.reset_input_buffer()
     print("Ready.\n")
 
 
@@ -126,7 +129,6 @@ def unpackTPacket(raw):
         'command':    fields[1],
         'data':       fields[2],
         'params':     list(fields[3:]),
-    }
 
 
 
@@ -258,6 +260,17 @@ def printPacket(pkt):
         msg = pkt['data'].rstrip(b'\x00').decode('ascii', errors='replace')
         print(f"Arduino: {msg}")
     else:
+        # Print the optional debug string from the data field.
+        # On the Arduino side, fill pkt.data before calling sendFrame() to
+        # send debug messages to this terminal (similar to Serial.print()).
+        debug = pkt['data'].rstrip(b'\x00').decode('ascii', errors='replace')
+        if debug:
+            print(f"Arduino debug: {debug}")
+
+    elif ptype == PACKET_TYPE_MESSAGE:
+        msg = pkt['data'].rstrip(b'\x00').decode('ascii', errors='replace')
+        print(f"Arduino: {msg}")
+    else:
         print(f"Packet: type={ptype}, cmd={cmd}")
 
 
@@ -272,6 +285,11 @@ def handleColorCommand():
     Check the E-Stop state first; if stopped, refuse with a clear message.
     Otherwise, send your color command to the Arduino.
     """
+<<<<<<< Updated upstream
+=======
+    # TODO
+    pass
+>>>>>>> Stashed changes
 
     if isEstopActive():
         print("E-Stop is active.")
@@ -307,6 +325,7 @@ def handleCameraCommand():
     Use captureGreyscaleFrame() and renderGreyscaleFrame() from alex_camera.
     """
     global _frames_remaining
+<<<<<<< Updated upstream
     
     if not isEstopActive():
         if _frames_remaining <= 0 :
@@ -318,6 +337,17 @@ def handleCameraCommand():
             print(f"remaining frames left: {_frames_remaining}")
     else:
         print("Refused: E-Stop is active.")
+=======
+    # TODO
+    if (!isEstopActive):
+        if (_frames_remaining <= 0):
+            
+
+
+
+
+    pass
+>>>>>>> Stashed changes
 
 
 # ----------------------------------------------------------------
@@ -373,9 +403,15 @@ def handleUserInput(line):
         handleColorCommand()
     # TODO (Activities 3 & 4): add elif branches for 'p' (camera) and 'l' (LIDAR).
     elif line == 'l':
+<<<<<<< Updated upstream
         handleLidarCommand()
     elif line == 'p':
         handleCameraCommand()
+=======
+	    handleLidarCommand()
+    elif line == 'p':
+        handleCameraComand()
+>>>>>>> Stashed changes
     else:
         print(f"Unknown input: '{line}'. Valid: e, c, p, l")
 
@@ -411,6 +447,7 @@ def runCommandInterface():
 # MAIN
 # ----------------------------------------------------------------
 
+<<<<<<< Updated upstream
 if __name__ == '__main__':
     openSerial()
     try:
@@ -420,3 +457,5 @@ if __name__ == '__main__':
     finally:
         # TODO (Activities 3 & 4): close the camera and disconnect the LIDAR here if you opened them.
         closeSerial()
+=======
+>>>>>>> Stashed changes

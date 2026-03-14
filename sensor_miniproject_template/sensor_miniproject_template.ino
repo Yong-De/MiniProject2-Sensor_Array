@@ -102,11 +102,14 @@ const int output_PIN = 2;
  * ensures all implementations report the same physical quantity.
  */
 
+<<<<<<< Updated upstream
 
 ISR(INT4_vect) {
   edgeCount++;
 }
 
+=======
+>>>>>>> Stashed changes
  /*
  * Use a timer to count rising edges on the sensor output over a fixed
  * window (e.g. 100 ms) for each color channel (red, green, blue).
@@ -124,6 +127,10 @@ void countEdge() {
   edgeCount++;
 }
 
+ISR(INT4_vect) {
+    edgeCount++;
+}
+
  /* Implement a function that measures all three channels and stores the
  * frequency in Hz in three variables.
  *
@@ -136,6 +143,7 @@ void countEdge() {
 
 static uint32_t measureChannel(uint8_t s2_val, uint8_t s3_val) {
   if(s2_val) {
+<<<<<<< Updated upstream
     PORTH |= (1 << PH5);
   } else {
     PORTH &= ~(1 << PH5);
@@ -145,6 +153,17 @@ static uint32_t measureChannel(uint8_t s2_val, uint8_t s3_val) {
     PORTH |= (1 << PH6);
   } else {
     PORTH &= ~(1 << PH6);
+=======
+    PORTA |= (1 << PA2);
+  } else {
+    PORTA &= ~(1 << PA2);
+  }
+
+  if(s3_val) {
+    PORTA |= (1 << PA3);
+  } else {
+    PORTA &= ~(1 << PA3);
+>>>>>>> Stashed changes
   }
 
   edgeCount = 0;
@@ -215,6 +234,7 @@ static void handleCommand(const TPacket *cmd) {
         //   Call your color-reading function (which returns Hz), then send a
         //   response packet with the three channel frequencies in Hz.
         case COMMAND_COLOR:
+            {
             uint32_t red, green, blue;
             readColorChannels(&red, &green, &blue);
                 TPacket colorPkt;
@@ -230,6 +250,7 @@ static void handleCommand(const TPacket *cmd) {
 
                 sendFrame(&colorPkt);
                 break;
+            }
     }
 }
 
@@ -249,6 +270,7 @@ void setup() {
     // TODO (Activity 1): configure the button pin and its external interrupt,
     // then call sei() to enable global interrupts.
 
+<<<<<<< Updated upstream
     DDRH |= (1 << PH3) | (1 << PH4) | (1 << PH5) | (1 << PH6);
     PORTH |= (1 << PH3);
     PORTH &= ~(1 << PH4);
@@ -262,6 +284,15 @@ void setup() {
     EIMSK |= (1 << INT5);
     EICRB |= (1 << ISC51);
     EICRB &= ~(1 << ISC50);
+=======
+    DDRA  |= (1 << PA0) | (1 << PA1) | (1 << PA2) | (1 << PA3);
+    PORTA |=  (1 << PA0);   // S0 HIGH
+    PORTA &= ~(1 << PA1);   // S1 LOW
+
+    DDRE &= ~(1 << PE5) & ~(1 << PE4);
+    EIMSK |= 0b00110000;
+    EICRB |= 0b00000111;
+>>>>>>> Stashed changes
 
     sei();
 }
