@@ -18,8 +18,8 @@
  *                      machine, color sensor, setup(), and loop().
  */
 
-#include "packets.h"
-#include "serial_driver.h"
+#include packets.h
+#include serial_driver.h
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
@@ -103,6 +103,9 @@ const int output_PIN = 2;
  */
 
 
+ISR(INT4_vect) {
+  edgeCount++;
+}
 
  /*
  * Use a timer to count rising edges on the sensor output over a fixed
@@ -117,6 +120,9 @@ unsigned int redFreq = 0;
 unsigned int blueFreq = 0;
 unsigned int greenFreq = 0;
 
+void countEdge() {
+  edgeCount++;
+}
 
  /* Implement a function that measures all three channels and stores the
  * frequency in Hz in three variables.
@@ -130,20 +136,24 @@ unsigned int greenFreq = 0;
 
 static uint32_t measureChannel(uint8_t s2_val, uint8_t s3_val) {
   if(s2_val) {
-    PORTD |= (1 << PD5);
+    PORTH |= (1 << PH5);
   } else {
-    PORTD &= ~(1 << PD5);
+    PORTH &= ~(1 << PH5);
   }
 
   if(s3_val) {
-    PORTD |= (1 << PD6);
+    PORTH |= (1 << PH6);
   } else {
-    PORTD &= ~(1 << PD6);
+    PORTH &= ~(1 << PH6);
   }
 
   edgeCount = 0;
 
-  for(volatile unsigned long i = 0; i < 160000; i++);
+  //for(volatile unsigned long i = 0; i < 160000; i++);............................
+  unsigned long startTime = millis();
+  while (millis() - startTime < 100) {
+        // Wait
+  }
 
   cli();
   uint32_t count = edgeCount;
@@ -216,7 +226,7 @@ static void handleCommand(const TPacket *cmd) {
                 colorPkt.params[1] = (uint16_t)green;
                 colorPkt.params[2] = (uint16_t)blue;
 
-                snprintf(colorPkt.data, sizeof(colorPkt.data), "Sending color command...\n Color: R=%lu Hz,G=%lu Hz,B=%lu Hz", red, green ,blue);
+                snprintf(colorPkt.data, sizeof(colorPkt.data), "Color: R=%lu Hz,G=%lu Hz,B=%lu Hz", red, green ,blue);
 
                 sendFrame(&colorPkt);
                 break;
@@ -239,13 +249,19 @@ void setup() {
     // TODO (Activity 1): configure the button pin and its external interrupt,
     // then call sei() to enable global interrupts.
 
-    DDRD |= (1 << PD3) | (1 << PD4) | (1 << PD5) | (1 << PD6);
-    PORTD |= (1 << PD3);
-    PORTD &= ~(1 << PD4);
+    DDRH |= (1 << PH3) | (1 << PH4) | (1 << PH5) | (1 << PH6);
+    PORTH |= (1 << PH3);
+    PORTH &= ~(1 << PH4);
+
+    DDRE &= ~(1 << PE4);
+    EIMSK |= (1 << INT4);
+    EICRB |= (1 << ISC41);
+    EICRB &= ~(1 << ISC40);
 
     DDRE &= ~(1 << PE5);
-    EIMSK |= 0b00100000;
-    EICRB |= 0b00000100;
+    EIMSK |= (1 << INT5);
+    EICRB |= (1 << ISC51);
+    EICRB &= ~(1 << ISC50);
 
     sei();
 }
