@@ -22,6 +22,8 @@ import time
 import sys
 import select
 
+import alex_camera as cam
+
 # ----------------------------------------------------------------
 # SERIAL PORT SETUP
 # ----------------------------------------------------------------
@@ -125,6 +127,16 @@ def unpackTPacket(raw):
         'data':       fields[2],
         'params':     list(fields[3:]),
     }
+
+
+
+
+
+
+
+
+
+
 
 
 def receiveFrame():
@@ -260,11 +272,13 @@ def handleColorCommand():
     Check the E-Stop state first; if stopped, refuse with a clear message.
     Otherwise, send your color command to the Arduino.
     """
-    # TODO
+
     if isEstopActive():
-        print("Estop is active.")
+        print("E-Stop is active.")
         return
 
+    print("sending colour command...")
+    sendCommand(COMMAND_COLOR)
     cmd = TPacket()
     cmd.packetType = PACKET_TYPE_COMMAND
     cmd.command = COMMAND_COLOR
@@ -281,7 +295,7 @@ def handleColorCommand():
 
 # TODO (Activity 3): import the camera library provided (alex_camera.py).
 
-_camera = None          # TODO (Activity 3): open the camera (cameraOpen()) before first use.
+_camera = cam.cameraOpen()          # TODO (Activity 3): open the camera (cameraOpen()) before first use.
 _frames_remaining = 5   # frames remaining before further captures are refused
 
 
@@ -293,10 +307,17 @@ def handleCameraCommand():
     Use captureGreyscaleFrame() and renderGreyscaleFrame() from alex_camera.
     """
     global _frames_remaining
-    # TODO
-    if (not isEstopActive):
-        _frames_remaining = 5
-    pass
+    
+    if not isEstopActive():
+        if _frames_remaining <= 0 :
+            print("no frames remaining")
+        else:
+            frame = cam.captureGreyscaleFrame(_camera)
+            cam.renderGreyscaleFrame(frame)
+            _frames_remaining -= 1
+            print(f"remaining frames left: {_frames_remaining}")
+    else:
+        print("Refused: E-Stop is active.")
 
 
 # ----------------------------------------------------------------
@@ -305,6 +326,8 @@ def handleCameraCommand():
 
 # TODO (Activity 4): import from lidar.alex_lidar and lidar_example_cli_plot
 #   (lidar_example_cli_plot.py is in the same folder; alex_lidar.py is in lidar/).
+import lidar.alex_lidar as alex_lidar
+from lidar_example_cli_plot import plot_single_scan
 
 def handleLidarCommand():
     """
@@ -350,7 +373,9 @@ def handleUserInput(line):
         handleColorCommand()
     # TODO (Activities 3 & 4): add elif branches for 'p' (camera) and 'l' (LIDAR).
     elif line == 'l':
-	    handleLidarCommand()
+        handleLidarCommand()
+    elif line == 'p':
+        handleCameraCommand()
     else:
         print(f"Unknown input: '{line}'. Valid: e, c, p, l")
 
@@ -395,4 +420,3 @@ if __name__ == '__main__':
     finally:
         # TODO (Activities 3 & 4): close the camera and disconnect the LIDAR here if you opened them.
         closeSerial()
-
