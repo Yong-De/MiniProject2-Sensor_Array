@@ -127,3 +127,6 @@ def renderGreyscaleFrame(frame):
         lines.append(line)
 
     print("\n".join(lines))
+
+
+
