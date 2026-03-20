@@ -55,12 +55,6 @@ volatile uint8_t rx_head = 0, rx_tail = 0;
 // Configure USART0 for 8N1 at the given baud rate with TX, RX, and
 // RX Complete interrupt enabled.  ubrr = (F_CPU / (16 * baud)) - 1.
 // For 9600 baud at 16 MHz: ubrr = 103.
-void usartInit(uint16_t ubrr) {
-    UBRR0H = (uint8_t)(ubrr >> 8);
-    UBRR0L = (uint8_t)(ubrr);
-    UCSR0B = (1 << TXEN0) | (1 << RXEN0) | (1 << RXCIE0);
-    UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);  // 8 data bits, 1 stop bit
-}
 
 // =============================================================
 // Activity 1, step 1: implement these four stubs

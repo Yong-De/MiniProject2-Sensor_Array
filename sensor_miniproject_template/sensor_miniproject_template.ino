@@ -23,6 +23,13 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
+void usartInit(uint16_t ubrr) {
+  UBRR0H = (uint8_t)(ubrr >> 8);
+  UBRR0L = (uint8_t)(ubrr);
+  UCSR0B = (1 << TXEN0) | (1 << RXEN0) | (1 << RXCIE0);
+  UCSR0C = (1 << UCSZ01) | (1 << UCSZ00); // 8 data bits, 1 stop bit
+}
+
 // =============================================================
 // Packet helpers (pre-implemented for you)
 // =============================================================
@@ -69,12 +76,14 @@ volatile bool   stateChanged = false;
  * registers for your chosen pin.
  */
 
-#define THRESHOLD 10
+#define THRESHOLD 5
 volatile bool buttonChanged = false;
 volatile long currTime, lastTime;
+bool prevPinHigh = false; // because button starts NOT pressed
+volatile bool buttonPressed = false;
 
 // Corresponds to digital pin 3 on the mega
-ISR(INT5_vect) {
+ISR(INT3_vect) {
   buttonChanged = true;
 }
 
@@ -120,7 +129,7 @@ void countEdge() {
   edgeCount++;
 }
 
-ISR(INT4_vect) {
+ISR(INT2_vect) {
     edgeCount++;
 }
 
@@ -186,6 +195,11 @@ static void readColorChannels(uint32_t *r, uint32_t *g, uint32_t *b) {
  *   Call your color-reading function, then send a response packet with
  *   the channel frequencies in Hz.
  */
+int modified_speed = 120;
+uint16_t _speed = modified_speed;
+int std_change = 15;
+uint16_t change = 0;
+
 static void handleCommand(const TPacket *cmd) {
     if (cmd->packetType != PACKET_TYPE_COMMAND) return;
 
@@ -215,23 +229,136 @@ static void handleCommand(const TPacket *cmd) {
         //   Call your color-reading function (which returns Hz), then send a
         //   response packet with the three channel frequencies in Hz.
         case COMMAND_COLOR:
-            {
+        {
             uint32_t red, green, blue;
             readColorChannels(&red, &green, &blue);
-                TPacket colorPkt;
-                memset(&colorPkt, 0, sizeof(colorPkt));
-                colorPkt.packetType = PACKET_TYPE_RESPONSE;
-                colorPkt.command    = RESP_COLOR;
 
-                colorPkt.params[0] = (uint16_t)red;
-                colorPkt.params[1] = (uint16_t)green;
-                colorPkt.params[2] = (uint16_t)blue;
+            TPacket colorPkt;
+            memset(&colorPkt, 0, sizeof(colorPkt));
+            colorPkt.packetType = PACKET_TYPE_RESPONSE;
+            colorPkt.command    = RESP_COLOR;
 
-                snprintf(colorPkt.data, sizeof(colorPkt.data), "R=%lu Hz, G=%lu Hz, B=%lu Hz", red, green ,blue);
+            colorPkt.params[0] = (uint16_t)red;
+            colorPkt.params[1] = (uint16_t)green;
+            colorPkt.params[2] = (uint16_t)blue;
 
-                sendFrame(&colorPkt);
-                break;
+            snprintf(colorPkt.data, sizeof(colorPkt.data), "R=%lu Hz, G=%lu Hz, B=%lu Hz", red, green ,blue);
+
+            sendFrame(&colorPkt);
+            break;
+        }
+        // Movement Actions
+        case COMMAND_FORWARD:
+            forward(_speed);
+
+            TPacket forwardPkt;
+            memset(&forwardPkt, 0, sizeof(forwardPkt));
+            forwardPkt.packetType = PACKET_TYPE_RESPONSE;
+            forwardPkt.command    = RESP_FORWARD;
+
+            forwardPkt.params[0] = (uint16_t) _speed;
+
+            snprintf(forwardPkt.data, sizeof(forwardPkt.data), "Moving forward at %u", _speed);
+
+            sendFrame(&forwardPkt);
+            break;
+        case COMMAND_LEFT:
+            ccw(_speed);
+
+            TPacket leftPkt;
+            memset(&leftPkt, 0, sizeof(leftPkt));
+            leftPkt.packetType = PACKET_TYPE_RESPONSE;
+            leftPkt.command    = RESP_LEFT;
+
+            leftPkt.params[0] = (uint16_t) _speed;
+
+            snprintf(leftPkt.data, sizeof(leftPkt.data), "Turning left at %u", _speed);
+
+            sendFrame(&leftPkt);
+            break;
+        case COMMAND_BACKWARD:
+            backward(_speed);
+
+            TPacket backwardPkt;
+            memset(&backwardPkt, 0, sizeof(backwardPkt));
+            backwardPkt.packetType = PACKET_TYPE_RESPONSE;
+            backwardPkt.command    = RESP_BACKWARD;
+
+            backwardPkt.params[0] = (uint16_t) _speed;
+
+            snprintf(backwardPkt.data, sizeof(backwardPkt.data), "Moving backward at %u", _speed);
+
+            sendFrame(&backwardPkt);
+            break;
+        case COMMAND_RIGHT:
+            cw(_speed);
+
+            TPacket rightPkt;
+            memset(&rightPkt, 0, sizeof(rightPkt));
+            rightPkt.packetType = PACKET_TYPE_RESPONSE;
+            rightPkt.command    = RESP_RIGHT;
+
+            rightPkt.params[0] = (uint16_t) _speed;
+
+            snprintf(rightPkt.data, sizeof(rightPkt.data), "Turning right at %u", _speed);
+
+            sendFrame(&rightPkt);
+            break;
+        case COMMAND_STOP:
+            stop();
+
+            TPacket stopPkt;
+            memset(&stopPkt, 0, sizeof(stopPkt));
+            stopPkt.packetType = PACKET_TYPE_RESPONSE;
+            stopPkt.command    = RESP_STOP;
+
+            strncpy(stopPkt.data, "Robot has stopped.", sizeof(stopPkt.data) - 1);
+            stopPkt.data[sizeof(stopPkt.data) - 1] = '\0';
+
+            sendFrame(&stopPkt);
+            break;
+            
+        // Speed Actions
+        case COMMAND_INCREASE:
+            modified_speed += std_change;
+            if (modified_speed > 255) {
+                modified_speed = 255;
+                printf("Speed cannot go above 255!");
             }
+            change = modified_speed - _speed;
+            _speed = modified_speed;
+
+            TPacket increasePkt;
+            memset(&increasePkt, 0, sizeof(increasePkt));
+            increasePkt.packetType = PACKET_TYPE_RESPONSE;
+            increasePkt.command    = RESP_INCREASE;
+
+            increasePkt.params[0] = (uint16_t) _speed;
+
+            snprintf(increasePkt.data, sizeof(increasePkt.data), "Increasing speed by %u", change);
+
+            sendFrame(&increasePkt);
+            break;
+        case COMMAND_DECREASE:
+            modified_speed -= std_change;
+            if (modified_speed < 0) {
+                modified_speed = 0;
+                printf("Speed cannot go below 0!");
+            }
+            change = _speed - modified_speed;
+            _speed = modified_speed;
+
+            TPacket decreasePkt;
+            memset(&decreasePkt, 0, sizeof(decreasePkt));
+            decreasePkt.packetType = PACKET_TYPE_RESPONSE;
+            decreasePkt.command    = RESP_DECREASE;
+
+            decreasePkt.params[0] = (uint16_t) _speed;
+
+            snprintf(decreasePkt.data, sizeof(decreasePkt.data), "Decreasing speed by %u", change);
+
+            sendFrame(&decreasePkt);
+            break;
     }
 }
 
@@ -255,9 +382,9 @@ void setup() {
     PORTA |=  (1 << PA0);   // S0 HIGH
     PORTA &= ~(1 << PA1);   // S1 LOW
 
-    DDRE &= ~(1 << PE5) & ~(1 << PE4);
-    EIMSK |= 0b00110000;
-    EICRB |= 0b00000111;
+    DDRD &= ~((1 << PD2) | (1 << PD3));
+    EIMSK |= 0b00001100;
+    EICRA |= 0b01110000;
 
     sei();
 }
@@ -265,15 +392,20 @@ void setup() {
 void loop() {
     if (buttonChanged) {
       buttonChanged = false;
+
       currTime = millis();
 
         if (currTime - lastTime > THRESHOLD) {
-            bool pinHigh = PINE & (1 << PE5);
+            bool pinHigh = PIND & (1 << PD3);
 
+            // ---- Detect button press (LOW -> HIGH) ----
             if (buttonState == STATE_RUNNING && pinHigh) {
                 buttonState = STATE_STOPPED;
+                stop();
                 stateChanged = true;
             }
+
+            // ---- Detect button release (HIGH -> LOW) ----
             else if (buttonState == STATE_STOPPED && !pinHigh) {
                 buttonState = STATE_RUNNING;
                 stateChanged = true;

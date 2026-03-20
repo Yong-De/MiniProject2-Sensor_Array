@@ -165,7 +165,7 @@ def convert_to_cartesian(angles, distances):
     for angle, distance in zip(angles, distances):
         # TODO: Fill in the code to convert the polar coordinates to cartesian coordinates
         # Hint, Pythagoras' theorem can be used to convert polar to cartesian coordinates
-        cartesian_X = distance * np.cos((angle/180) * VAL_PI)  # REPLACE ME with the correct formula
+        cartesian_X = -distance * np.cos((angle/180) * VAL_PI)  # REPLACE ME with the correct formula
         cartesian_Y = distance * np.sin((angle/180) * VAL_PI)  # REPLACE ME with the correct formula
 
         Xs.append(cartesian_X)

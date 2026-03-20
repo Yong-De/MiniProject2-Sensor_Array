@@ -60,16 +60,32 @@ PACKET_TYPE_COMMAND  = 0
 PACKET_TYPE_RESPONSE = 1
 PACKET_TYPE_MESSAGE  = 2
 
-COMMAND_ESTOP  = 0
+COMMAND_ESTOP       = 0
 # TODO (Activity 2): define your own command type for the color sensor here.
 # It must match the value you add to TCommandType in packets.h.
-COMMAND_COLOR = 2
+COMMAND_COLOR       = 2
+COMMAND_FORWARD     = 3
+COMMAND_LEFT        = 4
+COMMAND_BACKWARD    = 5
+COMMAND_RIGHT       = 6
+COMMAND_STOP        = 7
+COMMAND_INCREASE    = 8
+COMMAND_DECREASE    = 9
 
-RESP_OK     = 0
-RESP_STATUS = 1
+RESP_OK         = 0
+RESP_STATUS     = 1
 # TODO (Activity 2): define your own response type for the color sensor here.
 # It must match the value you add to TResponseType in packets.h.
-RESP_COLOR = 2
+RESP_COLOR      = 2
+# Movement Response
+RESP_FORWARD    = 3
+RESP_LEFT       = 4
+RESP_BACKWARD   = 5
+RESP_RIGHT      = 6
+RESP_STOP       = 7
+# Speed Response
+RESP_INCREASE   = 8
+RESP_DECREASE   = 9
 
 STATE_RUNNING = 0
 STATE_STOPPED = 1
@@ -127,16 +143,6 @@ def unpackTPacket(raw):
         'data':       fields[2],
         'params':     list(fields[3:])
     }
-
-
-
-
-
-
-
-
-
-
 
 
 def receiveFrame():
@@ -244,6 +250,29 @@ def printPacket(pkt):
             blue = pkt['params'][2]
             print(f"R: {red} Hz, G: {green} Hz, B: {blue} Hz")
 
+        elif cmd == RESP_FORWARD:
+            speed = pkt['params'][0]
+            print(f"Moving forward by {speed}")
+
+        elif cmd == RESP_LEFT:
+            speed = pkt['params'][0]
+            print(f"Turning left by {speed}")
+
+        elif cmd == RESP_BACKWARD:
+            speed = pkt['params'][0]
+            print(f"Moving backward by {speed}")
+
+        elif cmd == RESP_RIGHT:
+            speed = pkt['params'][0]
+            print(f"Turning right by {speed}")
+
+        elif cmd == RESP_STOP:
+            print("Robot has stopped")
+
+        elif cmd == RESP_INCREASE or cmd == RESP_DECREASE:
+            speed = pkt['params'][0]
+            print(f"Current speed {speed}")
+
         else:
             print(f"Response: unknown command {cmd}")
 
@@ -350,6 +379,31 @@ def handleLidarCommand():
 #   p  capture and display a camera frame            (Activity 3 - implement yourself)
 #   l  perform a single LIDAR scan                   (Activity 4 - implement yourself)
 
+def handleMovementCommand(movement):
+    if isEstopActive():
+        print("Refused: E-Stop is active")
+        return
+    print("sending movement command...")
+    if movement == 'w':
+        sendCommand(COMMAND_FORWARD)
+    elif movement == 'a':
+        sendCommand(COMMAND_LEFT)
+    elif movement == 's':
+        sendCommand(COMMAND_BACKWARD)
+    elif movement == 'd':
+        sendCommand(COMMAND_RIGHT)
+    elif movement == 'x':
+        sendCommand(COMMAND_STOP)
+
+def handleSpeedCommand(speed):
+    if isEstopActive():
+        print("Refused: E-Stop is active")
+        return
+    print("changing speed...")
+    if speed == '+':
+        sendCommand(COMMAND_INCREASE)
+    elif speed == '-':
+        sendCommand(COMMAND_DECREASE)
 
 def handleUserInput(line):
     """
@@ -369,8 +423,12 @@ def handleUserInput(line):
         handleLidarCommand()
     elif line == 'p':
         handleCameraCommand()
+    elif line == 'w' or line == 'a' or line == 's' or line == 'd' or line == 'x':
+        handleMovementCommand(line)
+    elif line == '+' or line == '-':
+        handleSpeedCommand(line)
     else:
-        print(f"Unknown input: '{line}'. Valid: e, c, p, l")
+        print(f"Unknown input: '{line}'. Valid: e, c, p, l, w, a, s, d, x, +, -")
 
 
 def runCommandInterface():
