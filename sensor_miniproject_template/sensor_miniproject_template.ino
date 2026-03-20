@@ -76,14 +76,13 @@ volatile bool   stateChanged = false;
  * registers for your chosen pin.
  */
 
-#define THRESHOLD 5
+#define THRESHOLD 1
 volatile bool buttonChanged = false;
 volatile long currTime, lastTime;
-bool prevPinHigh = false; // because button starts NOT pressed
-volatile bool buttonPressed = false;
+volatile bool prevPinHigh = false;
 
 // Corresponds to digital pin 3 on the mega
-ISR(INT3_vect) {
+ISR(INT0_vect) {
   buttonChanged = true;
 }
 
@@ -129,7 +128,7 @@ void countEdge() {
   edgeCount++;
 }
 
-ISR(INT2_vect) {
+ISR(INT1_vect) {
     edgeCount++;
 }
 
@@ -382,33 +381,38 @@ void setup() {
     PORTA |=  (1 << PA0);   // S0 HIGH
     PORTA &= ~(1 << PA1);   // S1 LOW
 
-    DDRD &= ~((1 << PD2) | (1 << PD3));
-    EIMSK |= 0b00001100;
-    EICRA |= 0b01110000;
+    DDRD &= ~((1 << PD0) | (1 << PD1));
+    PORTD |= PORTD |= (1 << PD0);
+    EIMSK |= 0b00000011;
+    EICRA |= 0b00001101;
 
     sei();
 }
 
 void loop() {
     if (buttonChanged) {
-      buttonChanged = false;
-
-      currTime = millis();
+        buttonChanged = false;
+        currTime = millis();
 
         if (currTime - lastTime > THRESHOLD) {
-            bool pinHigh = PIND & (1 << PD3);
+            bool pinHigh = PIND & (1 << PD0);
 
             // ---- Detect button press (LOW -> HIGH) ----
-            if (buttonState == STATE_RUNNING && pinHigh) {
+            if (buttonState == STATE_RUNNING && !pinHigh) {
                 buttonState = STATE_STOPPED;
                 stop();
                 stateChanged = true;
+                prevPinHigh = true;
             }
 
             // ---- Detect button release (HIGH -> LOW) ----
-            else if (buttonState == STATE_STOPPED && !pinHigh) {
-                buttonState = STATE_RUNNING;
-                stateChanged = true;
+            else if (buttonState == STATE_STOPPED && pinHigh) {
+                if (prevPinHigh) {
+                  prevPinHigh = false;
+                } else {
+                  buttonState = STATE_RUNNING;
+                  stateChanged = true;
+                }
             }
 
             lastTime = currTime;

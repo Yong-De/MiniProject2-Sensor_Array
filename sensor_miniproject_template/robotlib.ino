@@ -1,3 +1,4 @@
+
 #include <AFMotor.h>
 // Direction values
 typedef enum dir
@@ -31,28 +32,28 @@ void move(int speed, int direction)
   switch(direction)
     {
       case BACK:
-        motorFL.run(BACKWARD);
+        motorFL.run(FORWARD); // reversed
         motorFR.run(BACKWARD);
         motorBL.run(FORWARD);
-        motorBR.run(FORWARD); 
+        motorBR.run(BACKWARD); 
       break;
       case GO:
-        motorFL.run(FORWARD);
+        motorFL.run(BACKWARD); // reversed
         motorFR.run(FORWARD);
         motorBL.run(BACKWARD);
-        motorBR.run(BACKWARD); 
+        motorBR.run(FORWARD); // reversed
       break;
       case CW:
-        motorFL.run(BACKWARD);
+        motorFL.run(FORWARD); // reversed
         motorFR.run(FORWARD);
         motorBL.run(FORWARD);
-        motorBR.run(BACKWARD); 
+        motorBR.run(FORWARD); // reversed
       break;
       case CCW:
-        motorFL.run(FORWARD);
+        motorFL.run(BACKWARD); // reversed
         motorFR.run(BACKWARD);
         motorBL.run(BACKWARD);
-        motorBR.run(FORWARD); 
+        motorBR.run(BACKWARD); // reversed
       break;
       case STOP:
       default:
@@ -87,4 +88,5 @@ void stop()
 {
   move(0, STOP);
 }
+
 
