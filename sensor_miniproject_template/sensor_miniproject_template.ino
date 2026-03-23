@@ -194,9 +194,9 @@ static void readColorChannels(uint32_t *r, uint32_t *g, uint32_t *b) {
  *   Call your color-reading function, then send a response packet with
  *   the channel frequencies in Hz.
  */
-int modified_speed = 120;
+int modified_speed = 165;
 uint16_t _speed = modified_speed;
-int std_change = 15;
+int std_change = 45;
 uint16_t change = 0;
 
 static void handleCommand(const TPacket *cmd) {
