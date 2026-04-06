@@ -16,11 +16,14 @@ Usage:
   python3 pi_sensor.py
 """
 
+from second_terminal import relay # new
+
 import struct
 import serial
 import time
 import sys
 import select
+import re
 
 import alex_camera as cam
 
@@ -71,6 +74,12 @@ COMMAND_RIGHT       = 6
 COMMAND_STOP        = 7
 COMMAND_INCREASE    = 8
 COMMAND_DECREASE    = 9
+COMMAND_BASE        = 10
+COMMAND_SHOULDER    = 11
+COMMAND_ELBOW       = 12
+COMMAND_GRIPPER     = 13
+COMMAND_VELOCITY    = 14
+COMMAND_HOME        = 15
 
 RESP_OK         = 0
 RESP_STATUS     = 1
@@ -86,6 +95,12 @@ RESP_STOP       = 7
 # Speed Response
 RESP_INCREASE   = 8
 RESP_DECREASE   = 9
+RESP_BASE       = 10
+RESP_SHOULDER   = 11
+RESP_ELBOW      = 12
+RESP_GRIPPER    = 13
+RESP_VELOCITY   = 14
+RESP_HOME       = 15
 
 STATE_RUNNING = 0
 STATE_STOPPED = 1
@@ -273,6 +288,18 @@ def printPacket(pkt):
             speed = pkt['params'][0]
             print(f"Current speed {speed}")
 
+        elif cmd == RESP_BASE:
+            print(f"Base servo  -> {pkt['params'][0]} deg")
+        elif cmd == RESP_SHOULDER:
+            print(f"Shoulder    -> {pkt['params'][0]} deg")
+        elif cmd == RESP_ELBOW:
+            print(f"Elbow       -> {pkt['params'][0]} deg")
+        elif cmd == RESP_GRIPPER:
+            print(f"Gripper     -> {pkt['params'][0]} deg")
+        elif cmd == RESP_VELOCITY:
+            print(f"Arm speed   -> {pkt['params'][0]} ms/deg")
+        elif cmd == RESP_HOME:
+            print("Homing all servos to 90°")
         else:
             print(f"Response: unknown command {cmd}")
 
@@ -405,6 +432,24 @@ def handleSpeedCommand(speed):
     elif speed == '-':
         sendCommand(COMMAND_DECREASE)
 
+_ARM_COMMANDS = {
+    'B': (COMMAND_BASE,     'base'),
+    'S': (COMMAND_SHOULDER, 'shoulder'),
+    'E': (COMMAND_ELBOW,    'elbow'),
+    'G': (COMMAND_GRIPPER,  'gripper'),
+    'V': (COMMAND_VELOCITY, 'velocity'),
+}
+
+def handleArmCommand(letter, value):
+    """Send a servo/velocity command with the numeric value in params[0]."""
+    if isEstopActive():
+        print("Refused: E-Stop is active.")
+        return
+    cmd_type, label = _ARM_COMMANDS[letter]
+    print(f"Sending {label} command: {value}")
+    params = [value] + [0] * (PARAMS_COUNT - 1)
+    sendCommand(cmd_type, params=params)
+
 def handleUserInput(line):
     """
     Dispatch a single line of user input.
@@ -412,6 +457,12 @@ def handleUserInput(line):
     The 'e' case is pre-wired to send a software E-Stop command.
     TODO (Activities 2, 3 & 4): add 'c' (color), 'p' (camera) and 'l' (LIDAR).
     """
+    m = re.fullmatch(r'([BSEGVbsegv])(\d{3})', line)
+    if m:
+        letter = m.group(1).upper()
+        value  = int(m.group(2))
+        handleArmCommand(letter, value)
+        return
     if line == 'e':
         print("Sending E-Stop command...")
         sendCommand(COMMAND_ESTOP, data=b'This is a debug message')
@@ -427,6 +478,12 @@ def handleUserInput(line):
         handleMovementCommand(line)
     elif line == '+' or line == '-':
         handleSpeedCommand(line)
+    elif line == 'h':
+        if isEstopActive():
+            print("Refused: E-Stop is active.")
+        else:
+            print("Homing arm...")
+            sendCommand(COMMAND_HOME)
     else:
         print(f"Unknown input: '{line}'. Valid: e, c, p, l, w, a, s, d, x, +, -")
 
@@ -449,6 +506,7 @@ def runCommandInterface():
             pkt = receiveFrame()
             if pkt:
                 printPacket(pkt)
+                relay.onPacketReceived(packFrame(pkt['packetType'], pkt['command'], pkt['data'], pkt['params'])) # new
 
         rlist, _, _ = select.select([sys.stdin], [], [], 0)
         if rlist:
@@ -458,6 +516,7 @@ def runCommandInterface():
                 continue
             handleUserInput(line)
 
+        relay.checkSecondTerminal(_ser) # new
         time.sleep(0.05)
 
 
@@ -467,11 +526,13 @@ def runCommandInterface():
 
 if __name__ == '__main__':
     openSerial()
+    relay.start() # new
     try:
         runCommandInterface()
     except KeyboardInterrupt:
         print("\nExiting.")
     finally:
+        relay.shutdown() # new
         # TODO (Activities 3 & 4): close the camera and disconnect the LIDAR here if you opened them.
         closeSerial()
 

@@ -23,6 +23,12 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
+extern int basePos;
+extern int shoulderPos;
+extern int elbowPos;
+extern int gripperPos;
+extern int msPerDeg;
+
 void usartInit(uint16_t ubrr) {
   UBRR0H = (uint8_t)(ubrr >> 8);
   UBRR0L = (uint8_t)(ubrr);
@@ -358,6 +364,79 @@ static void handleCommand(const TPacket *cmd) {
 
             sendFrame(&decreasePkt);
             break;
+
+        // Arm Actions
+        case COMMAND_BASE:
+        {
+            int deg = (int)cmd->params[0];
+            setServo(0, &basePos, deg);
+            TPacket pkt; memset(&pkt, 0, sizeof(pkt));
+            pkt.packetType = PACKET_TYPE_RESPONSE;
+            pkt.command    = RESP_BASE;
+            pkt.params[0]  = (uint32_t)basePos;
+            snprintf(pkt.data, sizeof(pkt.data), "Base -> %d deg", basePos);
+            sendFrame(&pkt);
+            break;
+        }
+        case COMMAND_SHOULDER:
+        {
+            int deg = (int)cmd->params[0];
+            setServo(1, &shoulderPos, deg);
+            TPacket pkt; memset(&pkt, 0, sizeof(pkt));
+            pkt.packetType = PACKET_TYPE_RESPONSE;
+            pkt.command    = RESP_SHOULDER;
+            pkt.params[0]  = (uint32_t)shoulderPos;
+            snprintf(pkt.data, sizeof(pkt.data), "Shoulder -> %d deg", shoulderPos);
+            sendFrame(&pkt);
+            break;
+        }
+        case COMMAND_ELBOW:
+        {
+            int deg = (int)cmd->params[0];
+            setServo(2, &elbowPos, deg);
+            TPacket pkt; memset(&pkt, 0, sizeof(pkt));
+            pkt.packetType = PACKET_TYPE_RESPONSE;
+            pkt.command    = RESP_ELBOW;
+            pkt.params[0]  = (uint32_t)elbowPos;
+            snprintf(pkt.data, sizeof(pkt.data), "Elbow -> %d deg", elbowPos);
+            sendFrame(&pkt);
+            break;
+        }
+        case COMMAND_GRIPPER:
+        {
+            int deg = (int)cmd->params[0];
+            setServo(3, &gripperPos, deg);
+            TPacket pkt; memset(&pkt, 0, sizeof(pkt));
+            pkt.packetType = PACKET_TYPE_RESPONSE;
+            pkt.command    = RESP_GRIPPER;
+            pkt.params[0]  = (uint32_t)gripperPos;
+            snprintf(pkt.data, sizeof(pkt.data), "Gripper -> %d deg", gripperPos);
+            sendFrame(&pkt);
+            break;
+        }
+        case COMMAND_VELOCITY:
+        {
+            // msPerDeg = ms of delay per degree of movement; lower = faster
+            // VXXX sets it directly, e.g. V005 = 5ms/deg (fast), V020 = 20ms/deg (slow)
+            msPerDeg = (int)cmd->params[0];
+            TPacket pkt; memset(&pkt, 0, sizeof(pkt));
+            pkt.packetType = PACKET_TYPE_RESPONSE;
+            pkt.command    = RESP_VELOCITY;
+            pkt.params[0]  = (uint32_t)msPerDeg;
+            snprintf(pkt.data, sizeof(pkt.data), "ms/deg -> %d", msPerDeg);
+            sendFrame(&pkt);
+            break;
+        }
+        case COMMAND_HOME:
+        {
+            homeAll();
+            TPacket pkt; memset(&pkt, 0, sizeof(pkt));
+            pkt.packetType = PACKET_TYPE_RESPONSE;
+            pkt.command    = RESP_HOME;
+            strncpy(pkt.data, "Homing all servos.", sizeof(pkt.data) - 1);
+            sendFrame(&pkt);
+            break;
+        }
     }
 }
 
@@ -387,9 +466,11 @@ void setup() {
     EICRA |= 0b00001101;
 
     sei();
+    initRobotArm();
 }
 
 void loop() {
+    updateArm();
     if (buttonChanged) {
         buttonChanged = false;
         currTime = millis();

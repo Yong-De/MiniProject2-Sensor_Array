@@ -35,6 +35,13 @@ typedef enum {
     // Speed Commands
     COMMAND_INCREASE    = 8,
     COMMAND_DECREASE    = 9,
+    // Arm Commands
+    COMMAND_BASE        = 10,
+    COMMAND_SHOULDER    = 11,
+    COMMAND_ELBOW       = 12,
+    COMMAND_GRIPPER     = 13,
+    COMMAND_VELOCITY    = 14,
+    COMMAND_HOME        = 15,
 } TCommandType;
 
 typedef enum {
@@ -51,6 +58,13 @@ typedef enum {
     // Speed Response
     RESP_INCREASE   = 8,
     RESP_DECREASE   = 9,
+    //Arm Response
+    RESP_BASE       = 10,
+    RESP_SHOULDER   = 11,
+    RESP_ELBOW      = 12,
+    RESP_GRIPPER    = 13,
+    RESP_VELOCITY   = 14,
+    RESP_HOME       = 15,
 } TResponseType;
 
 typedef enum {
