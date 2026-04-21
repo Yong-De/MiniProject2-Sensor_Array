@@ -36,6 +36,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
 from textual.widgets import Footer, Static
+from streamer import start_map_streamer
 
 from settings import (
     MAP_SIZE_PIXELS, MAP_SIZE_METERS,
@@ -149,6 +150,7 @@ class SlamApp(App[None]):
 
     def on_mount(self) -> None:
         self.slam_proc.start()
+        start_map_streamer(self.pss)
         self.set_interval(1.0 / UI_REFRESH_HZ, self._refresh_view)
 
     def on_unmount(self) -> None:

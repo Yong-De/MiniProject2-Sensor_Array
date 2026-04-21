@@ -200,9 +200,10 @@ static void readColorChannels(uint32_t *r, uint32_t *g, uint32_t *b) {
  *   Call your color-reading function, then send a response packet with
  *   the channel frequencies in Hz.
  */
-int modified_speed = 165;
+int modified_speed = 105;
 uint16_t _speed = modified_speed;
-int std_change = 45;
+uint16_t turning_speed = 255;
+int std_change = 15;
 uint16_t change = 0;
 
 static void handleCommand(const TPacket *cmd) {
@@ -268,16 +269,16 @@ static void handleCommand(const TPacket *cmd) {
             sendFrame(&forwardPkt);
             break;
         case COMMAND_LEFT:
-            ccw(_speed);
+            ccw(turning_speed);
 
             TPacket leftPkt;
             memset(&leftPkt, 0, sizeof(leftPkt));
             leftPkt.packetType = PACKET_TYPE_RESPONSE;
             leftPkt.command    = RESP_LEFT;
 
-            leftPkt.params[0] = (uint16_t) _speed;
+            leftPkt.params[0] = (uint16_t) turning_speed;
 
-            snprintf(leftPkt.data, sizeof(leftPkt.data), "Turning left at %u", _speed);
+            snprintf(leftPkt.data, sizeof(leftPkt.data), "Turning left at %u", turning_speed);
 
             sendFrame(&leftPkt);
             break;
@@ -296,16 +297,16 @@ static void handleCommand(const TPacket *cmd) {
             sendFrame(&backwardPkt);
             break;
         case COMMAND_RIGHT:
-            cw(_speed);
+            cw(turning_speed);
 
             TPacket rightPkt;
             memset(&rightPkt, 0, sizeof(rightPkt));
             rightPkt.packetType = PACKET_TYPE_RESPONSE;
             rightPkt.command    = RESP_RIGHT;
 
-            rightPkt.params[0] = (uint16_t) _speed;
+            rightPkt.params[0] = (uint16_t) turning_speed;
 
-            snprintf(rightPkt.data, sizeof(rightPkt.data), "Turning right at %u", _speed);
+            snprintf(rightPkt.data, sizeof(rightPkt.data), "Turning right at %u", turning_speed);
 
             sendFrame(&rightPkt);
             break;

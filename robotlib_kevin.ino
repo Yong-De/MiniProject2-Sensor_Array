@@ -1,4 +1,3 @@
-
 #include <AFMotor.h>
 // Direction values
 typedef enum dir
@@ -20,6 +19,8 @@ AF_DCMotor motorFL(FRONT_LEFT);
 AF_DCMotor motorFR(FRONT_RIGHT);
 AF_DCMotor motorBL(BACK_LEFT);
 AF_DCMotor motorBR(BACK_RIGHT);
+
+#define MIN_SPEED 80 // can adjust, it is a floor to prevent commanding a speed that will always stall regardless of the ramp
 
 void move(int speed, int direction)
 {
@@ -64,25 +65,18 @@ void move(int speed, int direction)
     }
 }
 
-void forward(int speed)
+void moveWithRamp(int targetSpeed, int direction)
 {
-  move(speed, GO);
+  targetSpeed = max(targetSpeed, MIN_SPEED);
+  move(255, direction);
+  delay(100);
+  move(targetSpeed, direction);
 }
 
-void backward(int speed)
-{
-  move(speed, BACK);
-}
-
-void ccw(int speed)
-{
-  move(speed, CCW);
-}
-
-void cw(int speed)
-{
-  move(speed, CW);
-}
+void forward(int speed)  { moveWithRamp(speed, GO);    }
+void backward(int speed) { moveWithRamp(speed, BACK);  }
+void ccw(int speed)      { moveWithRamp(speed, CCW);   }
+void cw(int speed)       { moveWithRamp(speed, CW);    }
 
 void stop()
 {
@@ -96,21 +90,21 @@ void stop()
 #include <avr/interrupt.h>
 
 // Global state variables
-int basePos = 115;
-int shoulderPos = 070;
+int basePos = 120;
+int shoulderPos = 90;
 int elbowPos = 120;
-int gripperPos = 010;
+int gripperPos = 45;
 int msPerDeg = 10;
 
 // Volatile variables for the ISR
 volatile int timer_ticks = 0;
-volatile int tick_array[4]   = {178, 128, 183, 61};
-volatile int target_ticks[4] = {178, 128, 183, 61};
+volatile int tick_array[4]   = {183, 150, 183, 100};
+volatile int target_ticks[4] = {183, 150, 183, 100};
 unsigned long lastStepMillis = 0;
 
 // --- Timer 1 Interrupt Service Routine ---
 // This handles the PWM generation for the 4 servos on PORTK
-ISR(TIMER5_COMPA_vect) {
+ISR(TIMER3_COMPA_vect) {
     timer_ticks++;
     
     if (timer_ticks >= 2000) {
@@ -143,11 +137,11 @@ void initRobotArm() {
     DDRK |= (1 << PK0) | (1 << PK1) | (1 << PK2) | (1 << PK3);
     
     // Configure Timer 1 for CTC Mode
-    TCNT5 = 0;
-    OCR5A = 19;             // 10us interval at 16MHz with prescaler 8
-    TCCR5A = 0;
-    TCCR5B = (1 << WGM52) | (1 << CS51); // CTC mode, Prescaler = 8
-    TIMSK5 |= (1 << OCIE5A);             // Enable Timer Compare Interrupt
+    TCNT3 = 0;
+    OCR3A = 19;             // 10us interval at 16MHz with prescaler 8
+    TCCR3A = 0;
+    TCCR3B = (1 << WGM32) | (1 << CS31); // CTC mode, Prescaler = 8
+    TIMSK3 |= (1 << OCIE3A);             // Enable Timer Compare Interrupt
 }
 
 /**
@@ -188,9 +182,8 @@ void updateArm() {
 // * Returns all servos to the 90-degree position
 
 void homeAll() {
-    setServo(0, &basePos, 115);
-    setServo(1, &shoulderPos, 70);
-    setServo(2, &elbowPos, 120);
-    setServo(3, &gripperPos, 10);
+    setServo(0, &basePos, 120);
+    setServo(1, &shoulderPos, 90);
+    setServo(2, &elbowPos, 90);
+    setServo(3, &gripperPos, 45);
 }
-

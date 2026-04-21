@@ -345,7 +345,7 @@ def handleColorCommand():
 # TODO (Activity 3): open the camera (cameraOpen()) before first use.
 # frames remaining before further captures are refused
 _camera = None
-_frames_remaining = 5   
+_frames_remaining = 10   
 
 
 def handleCameraCommand():
